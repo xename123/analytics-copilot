@@ -1,0 +1,23 @@
+.title {
+  line-height: 110%;
+  letter-spacing: -0.01em;
+  &.title-small {
+    font-size: 14px;
+  }
+  &.title-regular {
+    font-size: 18px;
+  }
+  &.title-medium {
+    font-size: 24px;
+  }
+  &.title-large {
+    font-size: 32px;
+    line-height: 100%;
+    letter-spacing: -0.03em;
+  }
+  &.title-big {
+    font-size: 54px;
+    line-height: 90%;
+    letter-spacing: -0.06em;
+  }
+}

@@ -1,0 +1,1 @@
+export { aggregateByMonth } from "./aggregateByMonth";

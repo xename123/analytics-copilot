@@ -1,0 +1,17 @@
+.text {
+  line-height: 120%;
+  letter-spacing: -0.01em;
+  &.text-default {
+    font-size: 12px;
+  }
+  &.text-accent {
+    font-size: 14px;
+    color: blue;
+  }
+  .text-accent {
+    color: blue;
+  }
+  &.text-large {
+    font-size: 16p x;
+  }
+}
