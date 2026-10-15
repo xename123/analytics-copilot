@@ -1,3 +1,3 @@
-export type { Order, MonthlyRevenue } from "./model";
-export { mockOrders } from "./model/mock";
-export { aggregateByMonth } from "./lib";
+export type { Order, MonthlyRevenue, AllCategories } from "./model";
+export { mockOrders } from "./model/";
+export { aggregateByMonth, filterByCategory, getUniqueCategories } from "./lib";

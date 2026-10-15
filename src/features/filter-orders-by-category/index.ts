@@ -1,3 +1,2 @@
-// Публичное API слайса — то, что реально можно импортировать снаружи
-// (из widgets/pages). Внутренности ui/ и model/ напрямую не трогаем.
-export {};
+export { FilterOrdersSelect } from "./ui";
+export { useOrdersCategoryFilter } from "./model/";

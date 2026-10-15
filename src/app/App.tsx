@@ -3,8 +3,12 @@ import { RevenueChart } from "@/widgets/revenue-chart";
 import "./App.css";
 import { Paragraph, Title } from "@/shared/ui";
 import { useCurrentDate } from "@/shared/lib";
+import { FilterOrdersSelect } from "@/features/filter-orders-by-category/";
+import { useOrdersCategoryFilter } from "@/features/filter-orders-by-category/";
 function App() {
   const date = useCurrentDate().toLocaleString();
+  const { category, setCategory, filteredOrders } =
+    useOrdersCategoryFilter(mockOrders);
   return (
     <div className="dashboard">
       <div className="dashboard__top">
@@ -16,7 +20,14 @@ function App() {
           {date}
         </Paragraph>
       </div>
-      <RevenueChart orders={mockOrders} />
+      <div className="filter-row">
+        <Paragraph variant="large">{category}</Paragraph>
+        <FilterOrdersSelect
+          setSelectedCategory={setCategory}
+          orders={mockOrders}
+        />
+      </div>
+      <RevenueChart orders={filteredOrders} />
     </div>
   );
 }
