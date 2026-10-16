@@ -1,6 +1,5 @@
 const optionVariantClasses = {
   default: "option-default",
-  ultra: "option-ultra",
 } as const;
 
 type optionVariant = keyof typeof optionVariantClasses;
@@ -25,7 +24,7 @@ export function Select<T extends string>({
       value={value}
       className={`select ${selectClassName}`}
       onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-        onChange(e.target.value as T)
+        onChange(e.currentTarget.value as T)
       }
     >
       {options.map((item) => {

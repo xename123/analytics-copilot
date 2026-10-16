@@ -1,0 +1,24 @@
+.message {
+  max-width: 70%;
+  min-width: 120px;
+  border-radius: 12px;
+  padding: 8px 12px;
+  display: inline-block;
+}
+.message-user {
+  align-self: end;
+  background: var(--social-bg);
+}
+.message-assistant {
+  background: var(--accent-bg);
+}
+.message-user .message__sender {
+  text-align: right;
+}
+.message__sender {
+  font-size: 16px;
+}
+.message__content {
+  font-size: 14px;
+  margin-right: 12px;
+}

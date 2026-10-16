@@ -1,0 +1,27 @@
+.wrap {
+  display: flex;
+  gap: 120px;
+  justify-content: space-between;
+  min-height: 100vh;
+}
+.chat {
+  position: relative;
+  flex: 0 0 400px;
+  padding: 30px;
+  background: var(--accent-bg);
+}
+.dashboard {
+  padding: 30px 16px;
+  flex: 1 1 auto;
+}
+.dashboard__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+}
+.filter-row {
+  margin-bottom: 60px;
+  display: flex;
+  gap: 30px;
+}

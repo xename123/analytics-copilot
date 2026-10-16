@@ -17,6 +17,7 @@ export function RevenueChart({ orders }: { orders: Order[] }) {
       height={"100%"}
       aspect={1.618}
       maxHeight={700}
+      minHeight={400}
       className="revenue-bar__page"
     >
       <BarChart data={aggregatedOrders}>

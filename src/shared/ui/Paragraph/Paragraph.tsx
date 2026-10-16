@@ -3,7 +3,6 @@ import "./Paragraph.css";
 
 const paragraphVarianClasses = {
   default: "text-default",
-  accent: "text-accent",
   large: "text-large",
 } as const;
 
