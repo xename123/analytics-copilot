@@ -5,9 +5,11 @@ const inputVariantClasses = {
   "with-iconbtn": "input-rounded",
 } as const;
 
-interface Props<T> {
+interface Props<T> extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "value" | "onChange" | "className"
+> {
   variant?: keyof typeof inputVariantClasses;
-  placeholder?: string;
   onChange: (e: T) => void;
   value?: string;
 }
@@ -15,14 +17,14 @@ interface Props<T> {
 export function Input<T extends string>({
   value = "",
   variant = "default",
-  placeholder = "",
   onChange,
+  ...rest
 }: Props<T>) {
   return (
     <input
+      {...rest}
       value={value}
       className={`input ${inputVariantClasses[variant]}`}
-      placeholder={placeholder}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
         onChange(e.currentTarget.value as T)
       }

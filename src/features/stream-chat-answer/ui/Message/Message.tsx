@@ -1,7 +1,10 @@
-import { MessageInterface } from "@/features/stream-chat-answer/model";
+import { ChatMessage } from "@/features/stream-chat-answer/model";
 import "./Message.css";
 
-export function Message({ content, role }: Omit<MessageInterface, "status">) {
+export function Message({
+  content,
+  role,
+}: Omit<ChatMessage, "messageId" | "status">) {
   return (
     <div className={`message message-${role}`}>
       <p className="message__sender">{role === "user" ? "Я" : "Нейронка"}</p>

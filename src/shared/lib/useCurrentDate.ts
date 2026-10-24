@@ -7,7 +7,7 @@ export function useCurrentDate() {
 
     function tick() {
       setDate(new Date());
-      const delay = 1000 - (Date.now() % 1000); // до следующей реальной секунды
+      const delay = 1000 - (Date.now() % 1000);
       timeoutId = setTimeout(tick, delay);
     }
 

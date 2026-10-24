@@ -1,34 +1,40 @@
-import { mockOrders } from "@/entities/order";
+import { aggregateByMonth, mockOrders } from "@/entities/order";
 import { RevenueChart } from "@/widgets/revenue-chart";
 import { Paragraph, Title } from "@/shared/ui";
-import { useCurrentDate } from "@/shared/lib";
 import { FilterOrdersSelect } from "@/features/filter-orders-by-category/";
 import { useOrdersCategoryFilter } from "@/features/filter-orders-by-category/";
 import "./Dashboard.css";
 import { ChatPanel } from "@/widgets/chat-panel";
+import { CurrentDate } from "@/features/current-date";
+import { SYSTEM_PROMPTS } from "@/features/stream-chat-answer/";
 
 export function Dashboard() {
-  const date = useCurrentDate().toLocaleString();
   const { category, setCategory, filteredOrders } =
     useOrdersCategoryFilter(mockOrders);
   return (
     <div className="wrap">
       <div className="chat">
-        <ChatPanel />
+        <ChatPanel
+          systemMessages={[
+            { role: "system", content: SYSTEM_PROMPTS.dashboard },
+            {
+              role: "system",
+              content: JSON.stringify(aggregateByMonth(filteredOrders)),
+            },
+          ]}
+        />
       </div>
       <div className="dashboard">
         <div className="dashboard__top">
           <Title as="h1" variant="large">
             График кол-ва заказов в определенном месяце
           </Title>
-          <Paragraph variant="large">
-            <span className="text-accent">Текущее время:&nbsp;</span>
-            {date}
-          </Paragraph>
+          <CurrentDate />
         </div>
         <div className="filter-row">
           <Paragraph variant="large">{category}</Paragraph>
           <FilterOrdersSelect
+            value={category}
             setSelectedCategory={setCategory}
             orders={mockOrders}
           />

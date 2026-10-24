@@ -2,10 +2,12 @@
   display: flex;
   flex-direction: column;
   gap: 30px;
+  flex: 1 1 auto;
+  padding-bottom: 100px;
 }
 
 .llm__input {
-  position: absolute;
+  position: sticky;
   bottom: 30px;
   left: 30px;
   width: calc(100% - 60px);

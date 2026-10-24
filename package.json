@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "lint:fsd": "steiger ./src",
+    "format": "prettier --write .",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.4",
     "recharts": "^3.10.1",
+    "uuid": "^14.0.3",
     "vite-tsconfig-paths": "^6.1.1"
   },
   "devDependencies": {
@@ -29,6 +31,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.6",
     "globals": "^17.12.0",
+    "prettier": "^3.9.10",
     "steiger": "^0.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.69.0",

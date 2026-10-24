@@ -1,7 +1,28 @@
-export type roleType = "user" | "assistant";
-
-export interface MessageInterface {
-  status: "pending" | "streaming" | "done" | "error";
-  role: roleType;
+export interface LLMAnswer {
+  choices: {
+    delta: { content: string };
+    finish_reason: string | null;
+    index: number;
+  }[];
+  created: number;
+  id: string;
+  model: string;
+  object: string;
+  system_fingerprint: string;
+}
+export interface LLMMessage {
+  role: "user" | "system" | "assistant";
   content: string;
+}
+export interface Answer {
+  status: "pending" | "streaming" | "done" | "error";
+  content: string;
+  error: string | null;
+}
+export interface ChatMessage {
+  status: Answer["status"];
+  messageId: string;
+  role: "user" | "assistant";
+  content: string;
+  error?: string;
 }
