@@ -7,7 +7,7 @@ import "./Dashboard.css";
 
 import { CurrentDate } from "@/features/current-date";
 import { SYSTEM_PROMPTS } from "@/features/stream-chat-answer/";
-import React, { lazy, Suspense } from "react";
+import React, { Suspense } from "react";
 import { ChatPanelFallback } from "@/widgets/chat-panel/ui/ChatPanelFallback";
 
 const ChatPanelLazy = React.lazy(() =>
