@@ -4,9 +4,17 @@ import { Paragraph, Title } from "@/shared/ui";
 import { FilterOrdersSelect } from "@/features/filter-orders-by-category/";
 import { useOrdersCategoryFilter } from "@/features/filter-orders-by-category/";
 import "./Dashboard.css";
-import { ChatPanel } from "@/widgets/chat-panel";
+
 import { CurrentDate } from "@/features/current-date";
 import { SYSTEM_PROMPTS } from "@/features/stream-chat-answer/";
+import React, { lazy, Suspense } from "react";
+import { ChatPanelFallback } from "@/widgets/chat-panel/ui/ChatPanelFallback";
+
+const ChatPanelLazy = React.lazy(() =>
+  import("@/widgets/chat-panel").then((module) => ({
+    default: module.ChatPanel,
+  })),
+);
 
 export function Dashboard() {
   const { category, setCategory, filteredOrders } =
@@ -14,15 +22,17 @@ export function Dashboard() {
   return (
     <div className="wrap">
       <div className="chat">
-        <ChatPanel
-          systemMessages={[
-            { role: "system", content: SYSTEM_PROMPTS.dashboard },
-            {
-              role: "system",
-              content: JSON.stringify(aggregateByMonth(filteredOrders)),
-            },
-          ]}
-        />
+        <Suspense fallback={<ChatPanelFallback />}>
+          <ChatPanelLazy
+            systemMessages={[
+              { role: "system", content: SYSTEM_PROMPTS.dashboard },
+              {
+                role: "system",
+                content: JSON.stringify(aggregateByMonth(filteredOrders)),
+              },
+            ]}
+          />
+        </Suspense>
       </div>
       <div className="dashboard">
         <div className="dashboard__top">
