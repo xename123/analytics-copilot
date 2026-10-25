@@ -29,11 +29,10 @@ export function useLLMStreaming(messages: LLMMessage[]): Answer {
           setAnswerState({ status: "streaming", content: text, error: null });
         }
       } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") return;
         setAnswerState({
           status: "error",
-          content: text,
-          error: e instanceof Error ? e.message : String(e),
+          content: e instanceof Error ? e.message : String(e),
+          error: "Stop getting previous answer",
         });
       }
     })();

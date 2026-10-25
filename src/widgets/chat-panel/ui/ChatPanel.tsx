@@ -29,8 +29,8 @@ export function ChatPanel({ systemMessages }: Props) {
     e.preventDefault();
     if (inputValue) {
       setIsDisabled(true);
-      setChatHistory((prev) => [
-        ...prev,
+      setChatHistory([
+        ...chatHistory,
         {
           status: "done",
           messageId: uuidv4(),
@@ -43,27 +43,40 @@ export function ChatPanel({ systemMessages }: Props) {
     }
   }
   useEffect(() => {
+    if (status === "streaming") {
+      setChatHistory((prev) => {
+        const lastMessage = prev[prev.length - 1];
+        if (
+          lastMessage?.status === "streaming" &&
+          lastMessage.role === "assistant"
+        ) {
+          return [...prev.slice(0, -1), { ...lastMessage, content }];
+        }
+        return [
+          ...prev,
+          {
+            messageId: uuidv4(),
+            status: "streaming",
+            role: "assistant",
+            content,
+          },
+        ];
+      });
+    }
     if (status === "done") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setChatHistory((prev) => [
-        ...prev,
-        { messageId: uuidv4(), status: "done", role: "assistant", content },
-      ]);
       setIsDisabled(false);
       setPrompt("");
     }
     if (status === "error") {
       setChatHistory((prev) => [
-        ...prev,
+        ...prev.slice(0, -1),
         {
-          messageId: uuidv4(),
-          status: "error",
           role: "assistant",
           content: error ?? "",
+          messageId: uuidv4(),
+          status: "error",
         },
       ]);
-      setIsDisabled(false);
-      setPrompt("");
     }
   }, [status, content, error]);
 
@@ -77,9 +90,6 @@ export function ChatPanel({ systemMessages }: Props) {
             content={item.content}
           />
         ))}
-        {status === "streaming" && (
-          <Message role="assistant" content={content} />
-        )}
       </div>
       <form className="llm__input" onSubmit={handleSubmit}>
         <Input
