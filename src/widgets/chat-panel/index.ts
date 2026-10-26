@@ -1,1 +1,1 @@
-export { ChatPanel } from "./ui";
+export { ChatPanel, ChatPanelFallback } from "./ui";

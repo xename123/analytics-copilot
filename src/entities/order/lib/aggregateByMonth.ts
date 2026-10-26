@@ -1,17 +1,19 @@
 import { Order, MonthlyRevenue } from "@/entities/order/model";
 
 export function aggregateByMonth(orders: Order[]): MonthlyRevenue[] {
-  const aggregateMonth: MonthlyRevenue[] = [];
+  const aggregateMonth: Map<MonthlyRevenue["month"], MonthlyRevenue["total"]> =
+    new Map();
   orders.forEach((order: Order) => {
     const currentMonth = order.date.slice(0, 7);
-    const findedIndex: number = aggregateMonth.findIndex(
-      (item) => item.month === currentMonth,
-    );
-    if (aggregateMonth[findedIndex]) {
-      aggregateMonth[findedIndex].total += order.amount;
+    const currentMonthTotal = aggregateMonth.get(currentMonth);
+    if (currentMonthTotal) {
+      aggregateMonth.set(currentMonth, currentMonthTotal + order.amount);
     } else {
-      aggregateMonth.push({ month: currentMonth, total: order.amount });
+      aggregateMonth.set(currentMonth, order.amount);
     }
   });
-  return aggregateMonth.sort((a, b) => a.month.localeCompare(b.month));
+  return Array.from(aggregateMonth, ([month, total]) => ({
+    month,
+    total,
+  })).sort((a, b) => a.month.localeCompare(b.month));
 }

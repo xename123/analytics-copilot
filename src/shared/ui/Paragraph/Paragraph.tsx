@@ -16,7 +16,7 @@ interface Props {
 
 export function Paragraph({ variant = "default", className, children }: Props) {
   return (
-    <p className={`text ${paragraphVarianClasses[variant]} ${className && ""}`}>
+    <p className={`text ${paragraphVarianClasses[variant]} ${className ?? ""}`}>
       {children}
     </p>
   );

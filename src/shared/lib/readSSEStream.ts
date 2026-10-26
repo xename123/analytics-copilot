@@ -7,9 +7,12 @@ export async function* readSSEStream(
   let buffer = "";
   while (true) {
     const { done, value } = await reader.read();
-    if (done) return;
+    if (done) {
+      if (buffer) yield buffer;
+      return;
+    }
     buffer += decoder.decode(value, { stream: true });
-    const parts = buffer.split("\n\n");
+    const parts = buffer.split(/\n\n|\r\n\r\n/);
     buffer = parts.pop() ?? "";
     for (const message of parts) {
       if (message.trim()) yield message.trim();

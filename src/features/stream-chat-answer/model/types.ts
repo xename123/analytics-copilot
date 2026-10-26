@@ -11,7 +11,7 @@ export interface LLMAnswer {
   system_fingerprint: string;
 }
 export interface LLMMessage {
-  role: "user" | "system" | "assistant";
+  role: ChatMessage["role"];
   content: string;
 }
 export interface Answer {
@@ -22,7 +22,7 @@ export interface Answer {
 export interface ChatMessage {
   status: Answer["status"];
   messageId: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
   error?: string;
 }

@@ -9,12 +9,9 @@
 .llm__input {
   position: sticky;
   bottom: 30px;
-  left: 30px;
-  width: calc(100% - 60px);
 }
 .llm__input button {
   position: absolute;
-  top: 50%;
-  right: 8px;
-  transform: translateY(-50%);
+  right: 4px;
+  bottom: 4px;
 }

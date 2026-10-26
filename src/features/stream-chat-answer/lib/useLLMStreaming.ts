@@ -16,28 +16,42 @@ export function useLLMStreaming(messages: LLMMessage[]): Answer {
     const signal = controller.signal;
     (async () => {
       let text = "";
+      let status: Answer["status"] = "pending";
       try {
         const response = await sendStreamMessage([...messages], signal);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         for await (const message of readSSEStream(response)) {
           const parsedAnswer = parseLLMAnswer(message);
           if (parsedAnswer === "done") {
-            setAnswerState({ status: "done", content: text, error: null });
+            status = "done";
+            setAnswerState({ status, content: text, error: null });
             break;
           }
           const deltaContent = parsedAnswer?.choices[0]?.delta.content;
           if (deltaContent) text += deltaContent;
-          setAnswerState({ status: "streaming", content: text, error: null });
+          status = "streaming";
+          setAnswerState({ status, content: text, error: null });
+        }
+        if (status === "streaming") {
+          status = "done";
+          setAnswerState({ status, content: text, error: null });
         }
       } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
         setAnswerState({
           status: "error",
-          content: e instanceof Error ? e.message : String(e),
-          error: "Stop getting previous answer",
+          content: text,
+          error: e instanceof Error ? e.message : String(e),
         });
       }
     })();
     return () => {
       controller.abort();
+      setAnswerState({
+        status: "pending",
+        content: "",
+        error: null,
+      });
     };
   }, [messages]);
   return answerState;

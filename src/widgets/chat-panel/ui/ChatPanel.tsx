@@ -1,4 +1,4 @@
-import { IconButton, Input } from "@/shared/ui";
+import { IconButton, Textarea } from "@/shared/ui";
 import { ArrowRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -15,20 +15,25 @@ interface Props {
 export function ChatPanel({ systemMessages }: Props) {
   const [inputValue, setInputValue] = useState<string>("");
   const [isDisabled, setIsDisabled] = useState<boolean>(false);
-  const [prompt, setPrompt] = useState<string>("");
+  const [isCallingLLM, setIsCallingLLM] = useState<boolean>(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-
   const messages = useMemo<LLMMessage[]>(
     () =>
-      prompt ? [...systemMessages, { role: "user", content: prompt }] : [],
-    [systemMessages, prompt],
+      isCallingLLM
+        ? [
+            ...systemMessages,
+            ...chatHistory.map(({ role, content }) => ({ role, content })),
+          ]
+        : [],
+    [systemMessages, chatHistory, isCallingLLM],
   );
 
   const { status, content, error } = useLLMStreaming(messages);
   function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (inputValue) {
+    if (inputValue.trim()) {
       setIsDisabled(true);
+      setIsCallingLLM(true);
       setChatHistory([
         ...chatHistory,
         {
@@ -39,19 +44,15 @@ export function ChatPanel({ systemMessages }: Props) {
         },
       ]);
       setInputValue("");
-      setPrompt(inputValue);
     }
   }
   useEffect(() => {
-    if (status === "streaming") {
+    if (status === "done") {
+      // Разовая фиксация готового ответа в историю, а не вывод состояния
+      // из состояния на каждый рендер — react-hooks/set-state-in-effect
+      // тут ложное срабатывание.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setChatHistory((prev) => {
-        const lastMessage = prev[prev.length - 1];
-        if (
-          lastMessage?.status === "streaming" &&
-          lastMessage.role === "assistant"
-        ) {
-          return [...prev.slice(0, -1), { ...lastMessage, content }];
-        }
         return [
           ...prev,
           {
@@ -62,14 +63,12 @@ export function ChatPanel({ systemMessages }: Props) {
           },
         ];
       });
-    }
-    if (status === "done") {
       setIsDisabled(false);
-      setPrompt("");
+      setIsCallingLLM(false);
     }
     if (status === "error") {
       setChatHistory((prev) => [
-        ...prev.slice(0, -1),
+        ...prev,
         {
           role: "assistant",
           content: error ?? "",
@@ -77,6 +76,8 @@ export function ChatPanel({ systemMessages }: Props) {
           status: "error",
         },
       ]);
+      setIsDisabled(false);
+      setIsCallingLLM(false);
     }
   }, [status, content, error]);
 
@@ -90,9 +91,12 @@ export function ChatPanel({ systemMessages }: Props) {
             content={item.content}
           />
         ))}
+        {status === "streaming" && (
+          <Message role={"assistant"} content={content} />
+        )}
       </div>
       <form className="llm__input" onSubmit={handleSubmit}>
-        <Input
+        <Textarea
           value={inputValue}
           variant="with-iconbtn"
           placeholder="Введите ваш запрос"
