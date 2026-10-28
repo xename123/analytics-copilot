@@ -20,7 +20,7 @@ describe("useLLMStreaming", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     const { result } = renderHook(() => useLLMStreaming([]));
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(result.current.status).toBe("pending");
+    expect(result.current.status).toBe("idle");
   });
 
   test("склеивает токены и завершается на [DONE]", async () => {
@@ -82,7 +82,7 @@ describe("useLLMStreaming", () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockImplementation(neverResolvingFetch);
-    const { rerender } = renderHook(
+    const { result, rerender } = renderHook(
       ({ messages }) => useLLMStreaming(messages),
       { initialProps: { messages: question("q1") } },
     );
@@ -91,5 +91,9 @@ describe("useLLMStreaming", () => {
 
     expect(firstSignal?.aborted).toBe(true);
     expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+    // Отмена — не ошибка: AbortError старого запроса не должен попасть в state.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+    expect(result.current.status).not.toBe("error");
   });
 });

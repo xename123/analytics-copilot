@@ -10,6 +10,9 @@
   position: sticky;
   bottom: 30px;
 }
+.llm__input[aria-disabled="true"] {
+  pointer-events: none;
+}
 .llm__input button {
   position: absolute;
   right: 4px;

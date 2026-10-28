@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Answer, LLMMessage } from "../model";
-import { sendStreamMessage } from "../";
+import { sendStreamMessage } from "../api/sendStreamMessage";
 import { parseLLMAnswer } from "../api/parseLLMAnswer";
 import { readSSEStream } from "@/shared/lib";
 
 export function useLLMStreaming(messages: LLMMessage[]): Answer {
   const [answerState, setAnswerState] = useState<Answer>({
-    status: "pending",
+    status: "idle",
     content: "",
     error: null,
   });
@@ -17,8 +17,9 @@ export function useLLMStreaming(messages: LLMMessage[]): Answer {
     (async () => {
       let text = "";
       let status: Answer["status"] = "pending";
+
       try {
-        const response = await sendStreamMessage([...messages], signal);
+        const response = await sendStreamMessage(messages, signal);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         for await (const message of readSSEStream(response)) {
           const parsedAnswer = parseLLMAnswer(message);
@@ -27,14 +28,16 @@ export function useLLMStreaming(messages: LLMMessage[]): Answer {
             setAnswerState({ status, content: text, error: null });
             break;
           }
-          const deltaContent = parsedAnswer?.choices[0]?.delta.content;
+          const deltaContent = parsedAnswer?.choices[0]?.delta?.content;
           if (deltaContent) text += deltaContent;
           status = "streaming";
-          setAnswerState({ status, content: text, error: null });
+          console.log(text);
+
+          setAnswerState({ status, content: text.trim(), error: null });
         }
         if (status === "streaming") {
           status = "done";
-          setAnswerState({ status, content: text, error: null });
+          setAnswerState({ status, content: text.trim(), error: null });
         }
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") return;
@@ -45,6 +48,7 @@ export function useLLMStreaming(messages: LLMMessage[]): Answer {
         });
       }
     })();
+
     return () => {
       controller.abort();
       setAnswerState({

@@ -10,22 +10,29 @@ const titleVariantsClasses = {
 
 type TitleVariant = keyof typeof titleVariantsClasses;
 
-type TitleProps = {
+interface TitleProps extends Omit<
+  React.HTMLAttributes<HTMLHeadingElement>,
+  "className"
+> {
   as?: "h1" | "h2" | "h3" | "h4" | "h5";
   variant?: TitleVariant;
   className?: string;
   children: ReactNode;
-};
+}
 export function Title({
   as = "h2",
   variant = "medium",
-  className = "",
   children,
+  className = "",
+  ...rest
 }: TitleProps) {
   const Tag = as;
 
   return (
-    <Tag className={`title ${titleVariantsClasses[variant]} ${className}`}>
+    <Tag
+      {...rest}
+      className={`title ${titleVariantsClasses[variant]} ${className}`}
+    >
       {children}
     </Tag>
   );

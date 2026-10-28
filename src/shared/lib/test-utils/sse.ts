@@ -27,7 +27,17 @@ export function sseResponse(
   return new Response(body, init);
 }
 
-/** fetch, который никогда не отвечает — для проверки «сколько раз ушёл запрос». */
-export function neverResolvingFetch(): Promise<Response> {
-  return new Promise(() => {});
+/**
+ * fetch, который никогда не отвечает — для проверки «сколько раз ушёл запрос».
+ * Как и настоящий fetch, реджектится с AbortError, если отменить его signal.
+ */
+export function neverResolvingFetch(
+  _input?: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  return new Promise((_resolve, reject) => {
+    init?.signal?.addEventListener("abort", () =>
+      reject(new DOMException("The operation was aborted.", "AbortError")),
+    );
+  });
 }

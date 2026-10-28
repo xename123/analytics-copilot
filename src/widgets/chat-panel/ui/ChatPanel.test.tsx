@@ -13,12 +13,17 @@ import {
   sseResponse,
   sseToken,
 } from "@/shared/lib/test-utils";
+import { aggregateByMonth, mockOrders } from "@/entities/order";
+import type { DashboardContext } from "../model";
 import { ChatPanel } from "./ChatPanel";
 
-const systemMessages: LLMMessage[] = [{ role: "system", content: "SYSTEM" }];
+const chatContext: DashboardContext = {
+  category: "electronics",
+  revenueByMonth: aggregateByMonth(mockOrders),
+};
 
 function getInput() {
-  return screen.getByPlaceholderText<HTMLInputElement>("Введите ваш запрос");
+  return screen.getByPlaceholderText<HTMLTextAreaElement>("Введите ваш запрос");
 }
 
 function ask(text: string) {
@@ -33,78 +38,162 @@ function messageTexts() {
   );
 }
 
-/** Ждём, пока чат снова примет ввод — то есть ответ полностью обработан. */
-async function waitUntilReady() {
-  await waitFor(() => expect(getInput().disabled).toBe(false));
+/** Даём отработать оставшимся рендерам и эффектам (стримы в моках уже закрыты). */
+async function settle() {
+  await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
 }
 
-function requestBody(fetchSpy: ReturnType<typeof vi.spyOn>, call: number) {
+/**
+ * Ждём, пока в чате окажутся ровно эти сообщения и ответ зафиксируется в истории.
+ * Не завязано на disabled у инпута: блокировать ли ввод во время ответа —
+ * отдельное решение, тесты от него не зависят.
+ */
+async function waitForMessages(expected: string[]) {
+  await waitFor(() => expect(messageTexts()).toEqual(expected));
+  await settle();
+}
+
+function requestMessages(
+  fetchSpy: ReturnType<typeof vi.spyOn>,
+  call: number,
+): LLMMessage[] {
   const init = fetchSpy.mock.calls[call]?.[1] as RequestInit;
-  return JSON.parse(init.body as string) as { messages: LLMMessage[] };
+  return (JSON.parse(init.body as string) as { messages: LLMMessage[] })
+    .messages;
+}
+
+/** Всё, что после системных сообщений, — сам диалог. */
+function dialogOf(messages: LLMMessage[]) {
+  return messages.filter((m) => m.role !== "system");
 }
 
 describe("ChatPanel", () => {
-  test("вопрос и ответ попадают в историю, инпут снова доступен", async () => {
+  test("вопрос и ответ попадают в историю, поле ввода очищается", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       sseResponse([sseToken("Выручка "), sseToken("растёт"), SSE_DONE]),
     );
-    render(<ChatPanel systemMessages={systemMessages} />);
+    render(<ChatPanel context={chatContext} />);
 
     ask("Как дела с выручкой?");
-    await waitUntilReady();
+    await waitForMessages(["Как дела с выручкой?", "Выручка растёт"]);
 
-    expect(messageTexts()).toEqual(["Как дела с выручкой?", "Выручка растёт"]);
     expect(getInput().value).toBe("");
+  });
+
+  test("в модель уходят промпт и данные дашборда из context", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(neverResolvingFetch);
+    render(<ChatPanel context={chatContext} />);
+
+    ask("q");
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+
+    const [prompt, data] = requestMessages(fetchSpy, 0);
+    expect(prompt?.role).toBe("system");
+    expect(prompt?.content).not.toBe("");
+    expect(data?.role).toBe("system");
+    expect(JSON.parse(data?.content ?? "")).toEqual(chatContext);
   });
 
   test("пустой и пробельный ввод не отправляется", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
-    render(<ChatPanel systemMessages={systemMessages} />);
+    render(<ChatPanel context={chatContext} />);
 
     ask("");
     ask("   ");
-    await act(() => new Promise((r) => setTimeout(r, 20)));
+    await settle();
 
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(messageTexts()).toEqual([]);
   });
 
-  test("HTTP 404 от модели → ошибка видна, чат не блокируется", async () => {
-    vi.spyOn(globalThis, "fetch").mockImplementation(
-      async () => new Response('{"error":"model not found"}', { status: 404 }),
-    );
-    render(<ChatPanel systemMessages={systemMessages} />);
+  test("пробелы по краям вопроса обрезаются", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(neverResolvingFetch);
+    render(<ChatPanel context={chatContext} />);
 
-    ask("привет");
-    await waitUntilReady();
+    ask("  вопрос  \n\n");
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
 
-    expect(messageTexts()).toHaveLength(2);
+    expect(messageTexts()).toEqual(["вопрос"]);
+    expect(dialogOf(requestMessages(fetchSpy, 0))).toEqual([
+      { role: "user", content: "вопрос" },
+    ]);
   });
 
-  test("стрим оборвался без [DONE] → ответ сохраняется, чат не блокируется", async () => {
+  test("Enter отправляет, Shift+Enter — нет", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(neverResolvingFetch);
+    render(<ChatPanel context={chatContext} />);
+
+    fireEvent.change(getInput(), { target: { value: "строка" } });
+    fireEvent.keyDown(getInput(), { key: "Enter", shiftKey: true });
+    await settle();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(getInput(), { key: "Enter" });
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+  });
+
+  test("HTTP 404 от модели → ошибка видна, следующий вопрос уходит", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(
+        async () =>
+          new Response('{"error":"model not found"}', { status: 404 }),
+      );
+    render(<ChatPanel context={chatContext} />);
+
+    ask("привет");
+    await waitFor(() => expect(messageTexts()).toHaveLength(2));
+    await settle();
+    expect(messageTexts()[1]).toContain("404");
+
+    ask("ещё раз");
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+  });
+
+  test("стрим оборвался без [DONE] → ответ сохраняется, следующий вопрос уходит", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async () =>
+        sseResponse([sseToken("Выручка "), sseToken("растёт")]),
+      );
+    render(<ChatPanel context={chatContext} />);
+
+    ask("привет");
+    await waitForMessages(["привет", "Выручка растёт"]);
+
+    ask("ещё");
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+  });
+
+  test("пустой ответ модели → понятная заглушка, а не пустой пузырь", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
-      sseResponse([sseToken("Выручка "), sseToken("растёт")]),
+      sseResponse([SSE_DONE]),
     );
-    render(<ChatPanel systemMessages={systemMessages} />);
+    render(<ChatPanel context={chatContext} />);
 
-    ask("привет");
-    await waitUntilReady();
+    ask("q");
+    await waitFor(() => expect(messageTexts()).toHaveLength(2));
+    await settle();
 
-    expect(messageTexts()).toContain("Выручка растёт");
+    expect(messageTexts()[1]).not.toBe("");
   });
 
-  test("две одинаковые ошибки подряд → обе показаны, чат не блокируется", async () => {
+  test("две одинаковые ошибки подряд → обе показаны", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(
       new TypeError("Failed to fetch"),
     );
-    render(<ChatPanel systemMessages={systemMessages} />);
+    render(<ChatPanel context={chatContext} />);
 
     ask("первый");
-    await waitUntilReady();
+    await waitForMessages(["первый", "Failed to fetch"]);
     ask("второй");
-    await waitUntilReady();
-
-    expect(messageTexts()).toEqual([
+    await waitForMessages([
       "первый",
       "Failed to fetch",
       "второй",
@@ -116,49 +205,92 @@ describe("ChatPanel", () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       sseResponse([sseToken("Нет данных.") + SSE_DONE]),
     );
-    render(<ChatPanel systemMessages={systemMessages} />);
+    render(<ChatPanel context={chatContext} />);
 
     ask("q1");
-    await waitUntilReady();
+    await waitForMessages(["q1", "Нет данных."]);
     ask("q2");
-    await waitUntilReady();
-
-    expect(messageTexts()).toEqual(["q1", "Нет данных.", "q2", "Нет данных."]);
+    await waitForMessages(["q1", "Нет данных.", "q2", "Нет данных."]);
   });
 
   test("в модель уходит история диалога, а не только последний вопрос", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(sseResponse([sseToken("Ответ 1"), SSE_DONE]))
-      .mockImplementationOnce(neverResolvingFetch);
-    render(<ChatPanel systemMessages={systemMessages} />);
+      .mockImplementationOnce(async () =>
+        sseResponse([sseToken("Ответ 1"), SSE_DONE]),
+      )
+      .mockImplementation(neverResolvingFetch);
+    render(<ChatPanel context={chatContext} />);
 
     ask("Вопрос 1");
-    await waitUntilReady();
+    await waitForMessages(["Вопрос 1", "Ответ 1"]);
     ask("А почему?");
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
 
-    expect(requestBody(fetchSpy, 1).messages).toEqual([
-      { role: "system", content: "SYSTEM" },
+    expect(dialogOf(requestMessages(fetchSpy, 1))).toEqual([
       { role: "user", content: "Вопрос 1" },
       { role: "assistant", content: "Ответ 1" },
       { role: "user", content: "А почему?" },
     ]);
   });
 
-  test("смена systemMessages (фильтр) посреди стрима перезапускает запрос с новыми данными", async () => {
+  test("текст ошибки не уходит в модель как реплика ассистента", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockImplementation(neverResolvingFetch);
+    render(<ChatPanel context={chatContext} />);
+
+    ask("q1");
+    await waitForMessages(["q1", "Failed to fetch"]);
+    ask("q2");
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+
+    const dialog = dialogOf(requestMessages(fetchSpy, 1));
+    expect(dialog.some((m) => m.content === "Failed to fetch")).toBe(false);
+  });
+
+  test("смена context (фильтр) посреди стрима отменяет запрос и шлёт новые данные", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockImplementation(neverResolvingFetch);
-    const { rerender } = render(<ChatPanel systemMessages={systemMessages} />);
+    const { rerender } = render(<ChatPanel context={chatContext} />);
 
     ask("q");
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
-    rerender(
-      <ChatPanel systemMessages={[{ role: "system", content: "NEW DATA" }]} />,
-    );
+    const firstSignal = (fetchSpy.mock.calls[0]?.[1] as RequestInit).signal;
+
+    const booksContext: DashboardContext = {
+      category: "books",
+      revenueByMonth: aggregateByMonth(
+        mockOrders.filter((o) => o.category === "books"),
+      ),
+    };
+    rerender(<ChatPanel context={booksContext} />);
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
 
-    expect(requestBody(fetchSpy, 1).messages[0]?.content).toBe("NEW DATA");
+    expect(firstSignal?.aborted).toBe(true);
+    const data = requestMessages(fetchSpy, 1).find(
+      (m) => m.role === "system" && m.content.startsWith("{"),
+    );
+    expect(JSON.parse(data?.content ?? "")).toEqual(booksContext);
+
+    // Отмена из-за смены фильтра — не ошибка: в чате только вопрос.
+    await settle();
+    expect(messageTexts()).toEqual(["q"]);
+  });
+
+  test("перерендер с тем же context не перезапускает запрос", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(neverResolvingFetch);
+    const { rerender } = render(<ChatPanel context={chatContext} />);
+
+    ask("q");
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+    rerender(<ChatPanel context={chatContext} />);
+    await settle();
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });

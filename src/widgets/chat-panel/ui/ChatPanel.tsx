@@ -9,41 +9,55 @@ import {
   ChatMessage,
   useLLMStreaming,
 } from "@/features/stream-chat-answer/";
+import { buildSystemMessages, DashboardContext } from "../model";
+
 interface Props {
-  systemMessages: LLMMessage[];
+  context: DashboardContext;
 }
-export function ChatPanel({ systemMessages }: Props) {
+
+export function ChatPanel({ context }: Props) {
+  const systemMessages = useMemo(() => buildSystemMessages(context), [context]);
+
   const [inputValue, setInputValue] = useState<string>("");
-  const [isDisabled, setIsDisabled] = useState<boolean>(false);
-  const [isCallingLLM, setIsCallingLLM] = useState<boolean>(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const lastMessage = chatHistory[chatHistory.length - 1];
   const messages = useMemo<LLMMessage[]>(
     () =>
-      isCallingLLM
+      lastMessage?.role === "user"
         ? [
             ...systemMessages,
-            ...chatHistory.map(({ role, content }) => ({ role, content })),
+            ...chatHistory
+              .filter((item) => item.status !== "error")
+              .map(({ role, content }) => ({ role, content })),
           ]
         : [],
-    [systemMessages, chatHistory, isCallingLLM],
+    [systemMessages, chatHistory],
   );
 
   const { status, content, error } = useLLMStreaming(messages);
+
+  const isBusy = status === "streaming";
+
   function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     if (inputValue.trim()) {
-      setIsDisabled(true);
-      setIsCallingLLM(true);
+      // setIsCallingLLM(true);
       setChatHistory([
         ...chatHistory,
         {
           status: "done",
           messageId: uuidv4(),
           role: "user",
-          content: inputValue,
+          content: inputValue.trim(),
         },
       ]);
       setInputValue("");
+    }
+  }
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      e.currentTarget.form?.requestSubmit();
     }
   }
   useEffect(() => {
@@ -57,14 +71,13 @@ export function ChatPanel({ systemMessages }: Props) {
           ...prev,
           {
             messageId: uuidv4(),
-            status: "streaming",
+            status: "done",
             role: "assistant",
-            content,
+            content: content || "Модель ничего не ответила",
           },
         ];
       });
-      setIsDisabled(false);
-      setIsCallingLLM(false);
+      // setIsCallingLLM(false);
     }
     if (status === "error") {
       setChatHistory((prev) => [
@@ -76,8 +89,7 @@ export function ChatPanel({ systemMessages }: Props) {
           status: "error",
         },
       ]);
-      setIsDisabled(false);
-      setIsCallingLLM(false);
+      // setIsCallingLLM(false);
     }
   }, [status, content, error]);
 
@@ -95,13 +107,17 @@ export function ChatPanel({ systemMessages }: Props) {
           <Message role={"assistant"} content={content} />
         )}
       </div>
-      <form className="llm__input" onSubmit={handleSubmit}>
+      <form
+        className="llm__input"
+        aria-disabled={isBusy}
+        onSubmit={handleSubmit}
+      >
         <Textarea
           value={inputValue}
-          variant="with-iconbtn"
+          variant={["with-iconbtn", "lined"]}
           placeholder="Введите ваш запрос"
           onChange={setInputValue}
-          disabled={isDisabled}
+          onKeyDown={handleKeyDown}
         />
         <IconButton type="submit">
           <ArrowRight />

@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { HTMLAttributes, ReactNode } from "react";
 import "./Paragraph.css";
 
 const paragraphVarianClasses = {
@@ -8,15 +8,26 @@ const paragraphVarianClasses = {
 
 type ParagraphVariant = keyof typeof paragraphVarianClasses;
 
-interface Props {
-  variant?: ParagraphVariant;
+interface Props extends Omit<
+  HTMLAttributes<HTMLParagraphElement>,
+  "className"
+> {
   className?: string;
+  variant?: ParagraphVariant;
   children: ReactNode;
 }
 
-export function Paragraph({ variant = "default", className, children }: Props) {
+export function Paragraph({
+  variant = "default",
+  className = "",
+  children,
+  ...rest
+}: Props) {
   return (
-    <p className={`text ${paragraphVarianClasses[variant]} ${className ?? ""}`}>
+    <p
+      {...rest}
+      className={`text ${paragraphVarianClasses[variant]} ${className}`}
+    >
       {children}
     </p>
   );

@@ -6,9 +6,9 @@ import { useOrdersCategoryFilter } from "@/features/filter-orders-by-category/";
 import "./Dashboard.css";
 
 import { CurrentDate } from "@/features/current-date";
-import { SYSTEM_PROMPTS } from "@/features/stream-chat-answer/";
-import React, { Suspense } from "react";
-import { ChatPanelFallback } from "@/widgets/chat-panel/";
+import React, { Suspense, useMemo } from "react";
+import { Loader } from "@/shared/ui/";
+import { DashboardContext } from "@/widgets/chat-panel/model";
 
 const ChatPanelLazy = React.lazy(() =>
   import("@/widgets/chat-panel").then((module) => ({
@@ -19,19 +19,15 @@ const ChatPanelLazy = React.lazy(() =>
 export function Dashboard() {
   const { category, setCategory, filteredOrders } =
     useOrdersCategoryFilter(mockOrders);
+  const chatContext = useMemo<DashboardContext>(
+    () => ({ category, revenueByMonth: aggregateByMonth(filteredOrders) }),
+    [category, filteredOrders],
+  );
   return (
     <div className="wrap">
       <div className="chat">
-        <Suspense fallback={<ChatPanelFallback />}>
-          <ChatPanelLazy
-            systemMessages={[
-              { role: "system", content: SYSTEM_PROMPTS.dashboard },
-              {
-                role: "system",
-                content: JSON.stringify(aggregateByMonth(filteredOrders)),
-              },
-            ]}
-          />
+        <Suspense fallback={<Loader />}>
+          <ChatPanelLazy context={chatContext} />
         </Suspense>
       </div>
       <div className="dashboard">

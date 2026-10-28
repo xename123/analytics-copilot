@@ -4,14 +4,16 @@
   font-size: 16px;
   outline: none;
   border: 0;
-  resize: none;
-  field-sizing: content;
-  max-height: 200px;
-  display: block;
 }
 
 .textarea-default {
   border-radius: 12px;
+}
+.textarea-lined {
+  resize: none;
+  field-sizing: content;
+  max-height: 200px;
+  display: block;
 }
 .textarea-rounded {
   border-radius: 24px;

@@ -1,4 +1,4 @@
-import type { Order } from "./index";
+import type { Order } from "./types";
 
 export const mockOrders: Order[] = [
   { id: 1, date: "2024-01-05", category: "electronics", amount: 250 },
