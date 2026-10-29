@@ -1,14 +1,15 @@
 import { aggregateByMonth, mockOrders } from "@/entities/order";
 import { RevenueChart } from "@/widgets/revenue-chart";
-import { Paragraph, Title } from "@/shared/ui";
-import { FilterOrdersSelect } from "@/features/filter-orders-by-category/";
-import { useOrdersCategoryFilter } from "@/features/filter-orders-by-category/";
+import { ErrorBoundary, Paragraph, Title, Loader } from "@/shared/ui";
+import {
+  FilterOrdersSelect,
+  useOrdersCategoryFilter,
+} from "@/features/filter-orders-by-category/";
 import "./Dashboard.css";
 
 import { CurrentDate } from "@/features/current-date";
 import React, { Suspense, useMemo } from "react";
-import { Loader } from "@/shared/ui/";
-import { DashboardContext } from "@/widgets/chat-panel/model";
+import type { DashboardContext } from "@/widgets/chat-panel";
 
 const ChatPanelLazy = React.lazy(() =>
   import("@/widgets/chat-panel").then((module) => ({
@@ -26,14 +27,16 @@ export function Dashboard() {
   return (
     <div className="wrap">
       <div className="chat">
-        <Suspense fallback={<Loader />}>
-          <ChatPanelLazy context={chatContext} />
-        </Suspense>
+        <ErrorBoundary fallback={<Paragraph>Чат сейчас недоступен</Paragraph>}>
+          <Suspense fallback={<Loader />}>
+            <ChatPanelLazy context={chatContext} />
+          </Suspense>
+        </ErrorBoundary>
       </div>
       <div className="dashboard">
         <div className="dashboard__top">
           <Title as="h1" variant="large">
-            График кол-ва заказов в определенном месяце
+            Дашборд с суммой всех заказов в определенном месяце
           </Title>
           <CurrentDate />
         </div>

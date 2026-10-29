@@ -8,11 +8,7 @@ const paragraphVarianClasses = {
 
 type ParagraphVariant = keyof typeof paragraphVarianClasses;
 
-interface Props extends Omit<
-  HTMLAttributes<HTMLParagraphElement>,
-  "className"
-> {
-  className?: string;
+interface Props extends HTMLAttributes<HTMLParagraphElement> {
   variant?: ParagraphVariant;
   children: ReactNode;
 }

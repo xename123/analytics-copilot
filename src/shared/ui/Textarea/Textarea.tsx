@@ -8,26 +8,22 @@ const textareaVariantClasses = {
 
 type VariantKey = keyof typeof textareaVariantClasses;
 
-interface Props<T, K> extends Omit<
+interface Props extends Omit<
   React.TextareaHTMLAttributes<HTMLTextAreaElement>,
-  "value" | "onChange" | "onKeyDown"
+  "value" | "onChange"
 > {
   variant?: VariantKey | VariantKey[];
-  onChange: (e: T) => void;
-  onKeyDown?: (e: K) => void;
+  onChange: (e: string) => void;
   value?: string;
 }
 
-export function Textarea<
-  T extends string,
-  K extends React.KeyboardEvent<HTMLTextAreaElement>,
->({
+export function Textarea({
   value = "",
   variant = "default",
+  className = "",
   onChange,
-  onKeyDown,
   ...rest
-}: Props<T, K>) {
+}: Props) {
   const variants = Array.isArray(variant) ? variant : [variant];
   const variantClassName = variants
     .map((v) => textareaVariantClasses[v])
@@ -36,11 +32,10 @@ export function Textarea<
     <textarea
       {...rest}
       value={value}
-      className={`textarea ${variantClassName}`}
+      className={`textarea ${variantClassName} ${className}`}
       onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-        onChange(e.currentTarget.value as T)
+        onChange(e.currentTarget.value)
       }
-      onKeyDown={onKeyDown}
     />
   );
 }

@@ -1,38 +1,39 @@
-const optionVariantClasses = {
-  default: "option-default",
+const selectVariantClasses = {
+  default: "select-default",
 } as const;
 
-type optionVariant = keyof typeof optionVariantClasses;
+type selectVariant = keyof typeof selectVariantClasses;
 
-interface Props<T> {
+interface Props<T> extends Omit<
+  React.SelectHTMLAttributes<HTMLSelectElement>,
+  "onChange"
+> {
   value: string;
   options: T[];
-  selectClassName?: string;
-  variant?: optionVariant;
+  variant?: selectVariant;
   onChange: (value: T) => void;
 }
 
 export function Select<T extends string>({
   value,
   options,
-  selectClassName = "",
+  className = "",
   variant = "default",
   onChange,
+  ...rest
 }: Props<T>) {
   return (
     <select
+      {...rest}
       value={value}
-      className={`select ${selectClassName}`}
+      className={`select ${selectVariantClasses[variant]} ${className}`}
       onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
         onChange(e.currentTarget.value as T)
       }
     >
       {options.map((item) => {
         return (
-          <option
-            key={item}
-            className={`option ${optionVariantClasses[variant]}`}
-          >
+          <option className={`option `} key={item}>
             {item}
           </option>
         );

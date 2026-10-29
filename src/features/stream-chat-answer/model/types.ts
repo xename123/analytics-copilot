@@ -1,6 +1,6 @@
 export interface LLMAnswer {
   choices: {
-    delta: { content: string };
+    delta?: { content: string };
     finish_reason: string | null;
     index: number;
   }[];

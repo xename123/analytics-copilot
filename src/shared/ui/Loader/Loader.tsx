@@ -6,7 +6,12 @@ interface Props {
 
 export function Loader({ text }: Props) {
   return (
-    <div className="loader">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label={text ?? "Загрузка"}
+      className="loader"
+    >
       {text ?? ""}
       <div className="loader__circle"></div>
     </div>

@@ -13,5 +13,6 @@ export default defineConfig({
       include: ["src/**/*.{ts,tsx}"],
       exclude: ["src/**/*.test.{ts,tsx}", "src/**/index.ts"],
     },
+    env: { VITE_BASE_URL: "http://llm.test", VITE_LLM_MODEL: "test-model" },
   },
 });

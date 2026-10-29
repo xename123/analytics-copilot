@@ -32,6 +32,16 @@ describe("useLLMStreaming", () => {
     expect(result.current.content).toBe("Выручка растёт");
   });
 
+  test("пока ждём первый байт ответа — status 'pending', а не 'idle'", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(neverResolvingFetch);
+    const { result } = renderHook(() => useLLMStreaming(singleQuestion));
+
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+    expect(result.current.status).toBe("pending");
+  });
+
   test("HTTP 404/500 → status 'error', а не вечный pending", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(
       async () => new Response('{"error":"model not found"}', { status: 404 }),

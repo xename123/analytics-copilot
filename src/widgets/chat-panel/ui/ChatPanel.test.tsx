@@ -26,6 +26,10 @@ function getInput() {
   return screen.getByPlaceholderText<HTMLTextAreaElement>("Введите ваш запрос");
 }
 
+function getSubmitButton() {
+  return screen.getByRole<HTMLButtonElement>("button", { name: "Отправить" });
+}
+
 function ask(text: string) {
   const input = getInput();
   fireEvent.change(input, { target: { value: text } });
@@ -136,6 +140,42 @@ describe("ChatPanel", () => {
 
     fireEvent.keyDown(getInput(), { key: "Enter" });
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+  });
+
+  test("пока модель отвечает, второй вопрос не уходит ни кнопкой, ни Enter", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(neverResolvingFetch);
+    render(<ChatPanel context={chatContext} />);
+
+    ask("первый");
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+    expect(getSubmitButton().disabled).toBe(true);
+
+    // submit напрямую — проверяем защиту в handleSubmit, а не только disabled у кнопки
+    ask("второй");
+    fireEvent.change(getInput(), { target: { value: "третий" } });
+    fireEvent.keyDown(getInput(), { key: "Enter" });
+    await settle();
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(messageTexts()).toEqual(["первый"]);
+    // во время ответа печатать можно — набранный текст не теряется
+    expect(getInput().disabled).toBe(false);
+    expect(getInput().value).toBe("третий");
+  });
+
+  test("после ответа кнопка снова активна", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      sseResponse([sseToken("Ответ"), SSE_DONE]),
+    );
+    render(<ChatPanel context={chatContext} />);
+
+    expect(getSubmitButton().disabled).toBe(false);
+    ask("q");
+    await waitForMessages(["q", "Ответ"]);
+
+    expect(getSubmitButton().disabled).toBe(false);
   });
 
   test("HTTP 404 от модели → ошибка видна, следующий вопрос уходит", async () => {

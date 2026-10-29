@@ -20,28 +20,26 @@ export function ChatPanel({ context }: Props) {
 
   const [inputValue, setInputValue] = useState<string>("");
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const lastMessage = chatHistory[chatHistory.length - 1];
-  const messages = useMemo<LLMMessage[]>(
-    () =>
-      lastMessage?.role === "user"
-        ? [
-            ...systemMessages,
-            ...chatHistory
-              .filter((item) => item.status !== "error")
-              .map(({ role, content }) => ({ role, content })),
-          ]
-        : [],
-    [systemMessages, chatHistory],
-  );
+
+  const messages = useMemo<LLMMessage[]>(() => {
+    const lastMessage = chatHistory[chatHistory.length - 1];
+    return lastMessage?.role === "user"
+      ? [
+          ...systemMessages,
+          ...chatHistory
+            .filter((item) => item.status !== "error")
+            .map(({ role, content }) => ({ role, content })),
+        ]
+      : [];
+  }, [systemMessages, chatHistory]);
 
   const { status, content, error } = useLLMStreaming(messages);
 
-  const isBusy = status === "streaming";
+  const isBusy = status === "streaming" || status === "pending";
 
   function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (inputValue.trim()) {
-      // setIsCallingLLM(true);
+    if (inputValue.trim() && !isBusy) {
       setChatHistory([
         ...chatHistory,
         {
@@ -77,7 +75,6 @@ export function ChatPanel({ context }: Props) {
           },
         ];
       });
-      // setIsCallingLLM(false);
     }
     if (status === "error") {
       setChatHistory((prev) => [
@@ -89,13 +86,12 @@ export function ChatPanel({ context }: Props) {
           status: "error",
         },
       ]);
-      // setIsCallingLLM(false);
     }
   }, [status, content, error]);
 
   return (
     <>
-      <div className="llm__chat">
+      <div className="llm__chat" aria-live="polite" aria-busy={isBusy}>
         {chatHistory.map((item) => (
           <Message
             key={item.messageId}
@@ -109,17 +105,19 @@ export function ChatPanel({ context }: Props) {
       </div>
       <form
         className="llm__input"
-        aria-disabled={isBusy}
+        data-busy={isBusy}
+
         onSubmit={handleSubmit}
       >
         <Textarea
+          aria-label="Вопрос ассистенту"
           value={inputValue}
           variant={["with-iconbtn", "lined"]}
           placeholder="Введите ваш запрос"
           onChange={setInputValue}
           onKeyDown={handleKeyDown}
         />
-        <IconButton type="submit">
+        <IconButton disabled={isBusy} type="submit" aria-label="Отправить">
           <ArrowRight />
         </IconButton>
       </form>

@@ -10,8 +10,8 @@
   position: sticky;
   bottom: 30px;
 }
-.llm__input[aria-disabled="true"] {
-  pointer-events: none;
+.llm__input[data-busy="true"] {
+  opacity: 0.5;
 }
 .llm__input button {
   position: absolute;

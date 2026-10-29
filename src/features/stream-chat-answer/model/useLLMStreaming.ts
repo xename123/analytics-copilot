@@ -17,7 +17,7 @@ export function useLLMStreaming(messages: LLMMessage[]): Answer {
     (async () => {
       let text = "";
       let status: Answer["status"] = "pending";
-
+      setAnswerState({ status, content: "", error: null });
       try {
         const response = await sendStreamMessage(messages, signal);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -31,7 +31,6 @@ export function useLLMStreaming(messages: LLMMessage[]): Answer {
           const deltaContent = parsedAnswer?.choices[0]?.delta?.content;
           if (deltaContent) text += deltaContent;
           status = "streaming";
-          console.log(text);
 
           setAnswerState({ status, content: text.trim(), error: null });
         }
@@ -52,7 +51,7 @@ export function useLLMStreaming(messages: LLMMessage[]): Answer {
     return () => {
       controller.abort();
       setAnswerState({
-        status: "pending",
+        status: "idle",
         content: "",
         error: null,
       });

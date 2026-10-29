@@ -5,24 +5,23 @@ const iconButtonClasses = {
   default: "icon-btn-default",
 } as const;
 
-interface Props {
+interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   type?: "button" | "submit";
   children: ReactElement;
   variant?: keyof typeof iconButtonClasses;
-  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 export function IconButton({
   type = "button",
   children,
   variant = "default",
-  onClick,
+  ...rest
 }: Props) {
   return (
     <button
+      {...rest}
       type={type}
       className={`icon-btn ${iconButtonClasses[variant]}`}
-      onClick={onClick}
     >
       {children}
     </button>

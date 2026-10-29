@@ -4,3 +4,4 @@ export { Select } from "./Select";
 export { Textarea } from "./Textarea";
 export { IconButton } from "./IconButtons";
 export { Loader } from "./Loader";
+export { ErrorBoundary } from "./ErrorBoundary";
